@@ -168,10 +168,10 @@ const CONFIG = {
       { from:"me",  text:"형도오......", time:"오후 7:28", date:"10월 22일" },
       { from:"me",  text:"영화 보면서 먹을 과자만 사서 갈게", time:"오후 7:28", date:"10월 22일" },
       { from:"them", text:"응 응", time:"오후 7:28", date:"10월 22일" },
-      { from:"them", text:"노래 듣는 강아지 귀여워", time:"오후 11:54", new:true, date:"10월 22일" },
-      { from:"them", text:"담요 둘둘 강아지", time:"오후 11:54", new:true, date:"10월 22일" },
-      { from:"them", text:"포근포근", time:"오후 11:54", new:true, date:"10월 22일" },
-      { from:"them", text:"내일은 형 없이 뭐 하지", time:"오후 11:54", new:true, date:"10월 22일" }
+      { from:"them", text:"노래 듣는 강아지 귀여워", ago:5, new:true },
+      { from:"them", text:"담요 둘둘 강아지", ago:5, new:true },
+      { from:"them", text:"포근포근", ago:5, new:true },
+      { from:"them", text:"내일은 형 없이 뭐 하지", ago:5, new:true }
     ]
   },
 
@@ -182,7 +182,7 @@ const CONFIG = {
              이 말을 먼저 하고 나머지를 마저 보내요 (한 번만) */
   live: {
     siyeong: {
-      app:"talk", time:"오후 11:55", date:"10월 22일", afterLeave:6000,
+      app:"talk", afterLeave:6000,   // time/date 를 안 적으면 실제 현재 시간·날짜로 와요
       texts:["......", "쓸쓸해", "그래도 토요일엔 안 가니까", "같이 있을래", "사랑해"],
       gaps:[2600, 3200, 2800, 2400],
       onRead:{ text:"왜 이렇게 금방 읽어?", delay:1300, readWindow:30000 }
@@ -1149,6 +1149,13 @@ function initial(name) {
 }
 
 /* ───────── 상태 ───────── */
+// ago: N 이 붙은 메시지는 사이트를 연 시각 기준 N분 전 시간·날짜로 찍혀요
+["sms", "talk"].forEach(app => Object.values(CONFIG[app]).forEach(list => list.forEach(m => {
+  if (m.ago == null) return;
+  const d = new Date(Date.now() - m.ago * 60000), h = d.getHours();
+  m.time = `${h < 12 ? "오전" : "오후"} ${h % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")}`;
+  m.date = `${d.getMonth() + 1}월 ${d.getDate()}일`;
+})));
 const S = {
   locked: true, app: null, view: null, typing: {}, used: {}, call: null,
   unread: { sms: {}, talk: {} }, lockNotes: [],
@@ -1562,7 +1569,8 @@ function drawMsgs() {
     });
     if (S.typing[app + ":" + id]) h += `<div class="mr them"><div class="bb them typing"><i></i><i></i><i></i></div></div>`;
   } else {
-    const dkey = m => m.date || "오늘";
+    const today = (d => `${d.getMonth() + 1}월 ${d.getDate()}일`)(new Date());
+    const dkey = m => (m.date || today).replace(/\s/g, "");   // 날짜 없는 톡 = 오늘 날짜로 같이 묶기
     const band = m => {
       const x = /(\d+)월\s*(\d+)일/.exec(m.date || ""), now = new Date();
       const d = x ? new Date(now.getFullYear(), +x[1] - 1, +x[2]) : now;
